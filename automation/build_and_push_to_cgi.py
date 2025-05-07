@@ -28,7 +28,6 @@ config.read(CONFIG_FILE)
 DEV_REPO_ROOT = (SCRIPT_DIR / config['Paths']['dev_repo_root']).resolve()
 CGI_REPO_ROOT = (SCRIPT_DIR / config['Paths']['cgi_repo_root']).resolve()
 UE_ROOT = (SCRIPT_DIR / config['Paths']['ue_root']).resolve()
-PRECOMMIT_HOOK = CGI_REPO_ROOT / config['Git']['precommit_hook']
 
 BUILD_COMMANDS = [value.strip() for key, value in config['Build'].items() if value and value.strip()]
 files_to_copy_raw = config.get('FilesToCopy', 'paths', fallback='')
@@ -134,27 +133,6 @@ def copy_new_files(dry_run=False):
                 shutil.copy2(src_path, dest_path)
 
 ##
-#  Disables the pre-commit hook that normally prevents commits in the CGI branch
-##
-def temporarily_disable_hook(dry_run=False):
-    if PRECOMMIT_HOOK.exists():
-        print(f"Would temporarily disable pre-commit hook: {PRECOMMIT_HOOK}" if dry_run else f"Temporarily disabling pre-commit hook: {PRECOMMIT_HOOK}")
-        if not dry_run:
-            PRECOMMIT_HOOK.rename(PRECOMMIT_HOOK.with_suffix(".pre-commit.disabled"))
-            return True
-    return False
-
-##
-#  Restores the pre-commit hook that normally prevents commits in the CGI branch
-##
-def restore_hook(dry_run=False):
-    disabled_hook = PRECOMMIT_HOOK.with_suffix(".pre-commit.disabled")
-    if disabled_hook.exists():
-        print(f"Would restore pre-commit hook: {PRECOMMIT_HOOK}" if dry_run else f"Restoring pre-commit hook: {PRECOMMIT_HOOK}")
-        if not dry_run:
-            disabled_hook.rename(PRECOMMIT_HOOK)
-
-##
 #  Adds all changed files in the CGI repo to git
 ##
 def add_to_cgi_repo(dry_run=False):
@@ -177,17 +155,12 @@ def main():
         build_dev_binaries(dry_run=dry_run)
         delete_old_files(dry_run=dry_run)
         copy_new_files(dry_run=dry_run)
-
-        #hook_disabled = temporarily_disable_hook(dry_run=dry_run)
+        
         add_to_cgi_repo(dry_run=dry_run)
-        #if hook_disabled:
-            #restore_hook(dry_run=dry_run)
 
         print("Dry run completed!" if dry_run else "All done!")
     except Exception as e:
         print(f"Error: {e}")
-        if PRECOMMIT_HOOK.with_suffix(".pre-commit.disabled").exists() and not dry_run:
-            restore_hook()
 
 if __name__ == "__main__":
     main()
