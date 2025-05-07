@@ -1,0 +1,29 @@
+# NOTE: This is an example config file. You need to copy this file and rename it to *.config
+
+[Paths]
+dev_repo_root = D:\UE\Grimoire\GrimoireCore
+cgi_repo_root = D:\UE\Grimoire\GrimoireCGI
+ue_root = C:\Program Files\Epic Games\UE_5.5
+
+[Build]
+build_command_1 = UnrealBuildTool.dll GrimoireEditor Win64 DebugGame -project=Grimoire.uproject -clean
+build_command_2 = UnrealBuildTool.dll GrimoireEditor Win64 Shipping -project=Grimoire.uproject -clean
+build_command_3 = UnrealBuildTool.dll GrimoireEditor Win64 Development -project=Grimoire.uproject -Rebuild
+
+[Git]
+precommit_hook = .githooks/cgi/pre-commit
+
+# List of files/folders to copy.
+# IMPORTANT: Each path must be indented (at least one space or tab)!
+[FilesToCopy]
+paths =
+ /Binaries
+ /Build
+ /Config
+ /Content
+ /Plugins/Core
+ /Resources
+ /Scripts
+ Grimoire.uproject
+ Grimoire.png
+ ReadMe.md
