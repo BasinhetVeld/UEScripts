@@ -24,6 +24,16 @@ git lfs install
 rem Set git hook path
 git config core.hooksPath ".githooks\%HOOK_TYPE%"
 
+rem Check for Content plugin submodule
+if exist "Plugins\Content\.git" (
+    echo Found Git repo in Plugins\Content. Installing LFS...
+    pushd Plugins\Content
+    git lfs install
+    popd
+) else (
+    echo Plugins\Content is not a git repo or does not exist.
+)
+
 rem Show result
 echo %HOOK_TYPE% hooks installed:
 git config --get core.hooksPath

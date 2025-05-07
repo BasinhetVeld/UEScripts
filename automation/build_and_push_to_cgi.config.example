@@ -6,21 +6,23 @@ cgi_repo_root = D:\UE\MyProjectCGI
 ue_root = C:\Program Files\Epic Games\UE_5.5
 
 [Build]
+# Clean DebugGame binaries
 build_command_1 = UnrealBuildTool.dll MyProjectEditor Win64 DebugGame -project=MyProject.uproject -clean
+# Clean Shipping binaries
 build_command_2 = UnrealBuildTool.dll MyProjectEditor Win64 Shipping -project=MyProject.uproject -clean
+# Full Development rebuild (this also cleans its previous binaries)
 build_command_3 = UnrealBuildTool.dll MyProjectEditor Win64 Development -project=MyProject.uproject -Rebuild
 
 # List of files/folders to copy.
 # IMPORTANT: Each path must be indented (at least one space or tab)!
 [FilesToCopy]
 paths =
+ /.githooks
  /Binaries
  /Build
  /Config
  /Content
  /Plugins/Core
  /Resources
- /Scripts
- /.githooks
  MyProject.uproject
  ReadMe.md
