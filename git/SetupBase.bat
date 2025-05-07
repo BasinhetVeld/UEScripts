@@ -28,4 +28,6 @@ rem Show result
 echo %HOOK_TYPE% hooks installed:
 git config --get core.hooksPath
 
+echo "Your project will use .githooks\%HOOK_TYPE% for its git hooks"
+
 pause
