@@ -1,0 +1,11 @@
+# DEV pre-commit hooks
+
+#!/bin/sh
+
+# Disallow changes in any non-Core plugin (i.e., CGI-owned content)
+if git diff --cached --name-only | grep -q '^Plugins/Content/'; then
+  echo "Error: You can't commit to Content plugins. CGI owns this sub-tree."
+  exit 1
+fi
+
+exit 0
