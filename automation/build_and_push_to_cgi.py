@@ -18,6 +18,7 @@ CONFIG_FILE = SCRIPT_DIR / "build_and_push_to_cgi.config"
 if not CONFIG_FILE.exists():
     print(f"Configuration file not found: {CONFIG_FILE}")
     print("Please create a configuration.ini file in the same folder as this script.")
+    input("Press Enter to exit...")
     exit(1)
 
 
@@ -159,8 +160,11 @@ def main():
         add_to_cgi_repo(dry_run=dry_run)
 
         print("Dry run completed!" if dry_run else "All done!")
+        
     except Exception as e:
         print(f"Error: {e}")
+        
+    input("Press Enter to exit...")
 
 if __name__ == "__main__":
     main()
