@@ -22,7 +22,6 @@ build_command_4 = UnrealBuildTool.dll MyProjectEditor Win64 Development -project
 paths =
  /.githooks
  /Binaries
- /Build
  /Config
  /Content
  /Plugins/Core
