@@ -1,5 +1,0 @@
-# NOTE: build_android_binaries.config.example is an example config file. 
-# You need to copy this file and rename it to build_android_binaries.config
-
-[Build]
-configuration = Development

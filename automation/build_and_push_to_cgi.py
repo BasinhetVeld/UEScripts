@@ -44,7 +44,7 @@ CGI_REPO_ROOT = (SCRIPT_DIR / project_config['Paths']['cgi_repo_root']).resolve(
 UE_ROOT = (SCRIPT_DIR / project_config['Paths']['ue_root']).resolve()
 INCLUDE_ANDROID = build_config.getboolean("Build", "IncludeAndroid", fallback=False)
 
-BUILD_COMMANDS = [value.strip() for key, value in build_config['Build'].items() if value and value.strip()]
+BUILD_COMMANDS = [value.strip() for key, value in build_config['BuildCommands'].items() if value and value.strip()]
 files_to_copy_raw = build_config.get('FilesToCopy', 'paths', fallback='')
 FILES_TO_COPY = [line.strip() for line in files_to_copy_raw.splitlines() if line.strip()]
 
@@ -170,7 +170,9 @@ def main():
         build_dev_binaries(dry_run=dry_run)
         
         if not dry_run and INCLUDE_ANDROID:
-            if not build_android():
+            print("Building Android binaries")
+            #  Note: Only tested for Development configuration. The resulting .so might be differently named and not correctly used by package_android.py.
+            if not build_android("Development"):
                 raise RuntimeError("Failed to build android binaries")
         
         delete_old_files(dry_run=dry_run)

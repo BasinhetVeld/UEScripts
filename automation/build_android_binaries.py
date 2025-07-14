@@ -1,6 +1,7 @@
 import subprocess
 import shutil
 import sys
+import argparse
 from pathlib import Path
 import configparser
 
@@ -9,19 +10,6 @@ from common.automation_common import (
     find_uproject,
     load_ue_root
 )
-
-def load_build_settings() -> str:
-    config_path = Path(__file__).resolve().parent / "config" / "build_android_binaries.config"
-    if not config_path.exists():
-        raise RuntimeError(f"build_android_binaries.config not found at: {config_path}")
-
-    config = configparser.ConfigParser()
-    config.read(config_path)
-
-    try:
-        return config["Build"]["configuration"]
-    except KeyError:
-        raise RuntimeError("Missing 'configuration' in [Build] section of build_android_binaries.config")
 
 def run_build(ue_root: Path, uproject_path: Path, configuration: str):
     runuat_path = ue_root / "Engine" / "Build" / "BatchFiles" / "RunUAT.bat"
@@ -38,10 +26,8 @@ def run_build(ue_root: Path, uproject_path: Path, configuration: str):
         "-platform=Android",
         "-targetplatform=Android",
         "-build",
-        "-cook",
-        "-pak",
-        "-stage",
-        "-archive"
+        "-skipcook",
+        "-stage"
     ]
 
     print(f"Running Unreal Automation Tool:")
@@ -63,7 +49,7 @@ def move_so_to_precompiled(project_root: Path, uproject_path: Path):
     else:
         raise RuntimeError(f"Could not find {source_so.name} in Binaries/Android.")
 
-def build_android() -> bool:
+def build_android(configuration: str) -> bool:
     try:
         project_root = get_project_root()
         print(f"Project root: {project_root}")
@@ -73,8 +59,7 @@ def build_android() -> bool:
 
         ue_root = load_ue_root()
         print(f"Using Unreal Engine from: {ue_root}")
-
-        configuration = load_build_settings()
+        
         print(f"Build configuration: {configuration}")
 
         run_build(ue_root, uproject_path, configuration)
@@ -86,5 +71,17 @@ def build_android() -> bool:
         input("Press Enter to exit...")
         return False
 
+def parse_args():
+    parser = argparse.ArgumentParser(description="Build android binaries for Quest 3")
+    parser.add_argument(
+        "-c", "--config",
+        type=str,
+        default="Development",
+        choices=["Debug", "Development", "Shipping"],
+        help="Build configuration (default: Development)"
+    )
+    return parser.parse_args()
+
 if __name__ == "__main__":
-    sys.exit(0 if build_android() else 1)
+    args = parse_args()
+    sys.exit(0 if build_android(args.config) else 1)
