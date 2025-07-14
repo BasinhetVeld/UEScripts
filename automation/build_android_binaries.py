@@ -4,47 +4,16 @@ import sys
 from pathlib import Path
 import configparser
 
-def get_project_root() -> Path:
-    return Path(__file__).resolve().parents[2]
-
-def find_uproject(project_root: Path) -> Path:
-    uproject_files = list(project_root.glob("*.uproject"))
-    if not uproject_files:
-        print("No .uproject file found in project root:", project_root)
-        input("Press Enter to exit...")
-        sys.exit(1)
-    return uproject_files[0]
-
-def load_ue_root() -> Path:
-    config_path = Path(__file__).resolve().parent / "config" / "project.config"
-    if not config_path.exists():
-        print(f"project.config not found at: {config_path}")
-        input("Press Enter to exit...")
-        sys.exit(1)
-
-    config = configparser.ConfigParser()
-    config.read(config_path)
-
-    try:
-        ue_root = Path(config["Paths"]["ue_root"])
-    except KeyError:
-        print("Missing 'ue_root' in [Paths] section of project.config")
-        input("Press Enter to exit...")
-        sys.exit(1)
-
-    if not ue_root.exists():
-        print(f"ue_root path does not exist: {ue_root}")
-        input("Press Enter to exit...")
-        sys.exit(1)
-
-    return ue_root
+from common.automation_common import (
+    get_project_root,
+    find_uproject,
+    load_ue_root
+)
 
 def load_build_settings() -> str:
     config_path = Path(__file__).resolve().parent / "config" / "build_android_binaries.config"
     if not config_path.exists():
-        print(f"build_android_binaries.config not found at: {config_path}")
-        input("Press Enter to exit...")
-        sys.exit(1)
+        raise RuntimeError(f"build_android_binaries.config not found at: {config_path}")
 
     config = configparser.ConfigParser()
     config.read(config_path)
@@ -52,16 +21,12 @@ def load_build_settings() -> str:
     try:
         return config["Build"]["configuration"]
     except KeyError:
-        print("Missing 'configuration' in [Build] section of build_android_binaries.config")
-        input("Press Enter to exit...")
-        sys.exit(1)
+        raise RuntimeError("Missing 'configuration' in [Build] section of build_android_binaries.config")
 
 def run_build(ue_root: Path, uproject_path: Path, configuration: str):
     runuat_path = ue_root / "Engine" / "Build" / "BatchFiles" / "RunUAT.bat"
     if not runuat_path.exists():
-        print(f"RunUAT.bat not found at {runuat_path}")
-        input("Press Enter to exit...")
-        sys.exit(1)
+        raise RuntimeError(f"RunUAT.bat not found at {runuat_path}")
 
     command = [
         str(runuat_path),
@@ -77,49 +42,49 @@ def run_build(ue_root: Path, uproject_path: Path, configuration: str):
         "-pak",
         "-stage",
         "-archive"
-        # Removed: "-archivedirectory=Saved/AndroidBuild"
     ]
 
     print(f"Running Unreal Automation Tool:")
     print(" ".join(command))
     result = subprocess.run(command)
     if result.returncode != 0:
-        print("BuildCookRun failed with exit code", result.returncode)
-        input("Press Enter to exit...")
-        sys.exit(result.returncode)
+        raise RuntimeError("BuildCookRun failed with exit code", result.returncode)
 
-def report_outputs(project_root: Path, uproject_path: Path):
+def move_so_to_precompiled(project_root: Path, uproject_path: Path):
     stem = uproject_path.stem
-    output_dir = project_root / "Binaries" / "Android"
-    apk_file = output_dir / f"{stem}-arm64.apk"
-    so_file = output_dir / f"{stem}-arm64.so"
+    source_so = project_root / "Binaries" / "Android" / f"{stem}-arm64.so"
+    target_dir = project_root / "AndroidPrecompiled"
+    target_dir.mkdir(parents=True, exist_ok=True)
+    target_so = target_dir / f"{stem}-arm64.so"
 
-    print("\nBuild Output Summary:")
-    if apk_file.exists():
-        print(f"APK: {apk_file}")
+    if source_so.exists():
+        shutil.copy2(source_so, target_so)
+        print(f"Copied {source_so.name} to {target_so}")
     else:
-        print(f"APK not found: {apk_file}")
+        raise RuntimeError(f"Could not find {source_so.name} in Binaries/Android.")
 
-    if so_file.exists():
-        print(f"SO : {so_file}")
-    else:
-        print(f"SO not found: {so_file}")
+def build_android() -> bool:
+    try:
+        project_root = get_project_root()
+        print(f"Project root: {project_root}")
 
-def main():
-    project_root = get_project_root()
-    print(f"Project root: {project_root}")
+        uproject_path = find_uproject(project_root)
+        print(f"Found .uproject: {uproject_path.name}")
 
-    uproject_path = find_uproject(project_root)
-    print(f"Found .uproject: {uproject_path.name}")
+        ue_root = load_ue_root()
+        print(f"Using Unreal Engine from: {ue_root}")
 
-    ue_root = load_ue_root()
-    print(f"Using Unreal Engine from: {ue_root}")
+        configuration = load_build_settings()
+        print(f"Build configuration: {configuration}")
 
-    configuration = load_build_settings()
-    print(f"Build configuration: {configuration}")
-
-    run_build(ue_root, uproject_path, configuration)
-    report_outputs(project_root, uproject_path)
+        run_build(ue_root, uproject_path, configuration)
+        move_so_to_precompiled(project_root, uproject_path)
+        return True
+        
+    except Exception as e:
+        print(f"Build failed: {e}")
+        input("Press Enter to exit...")
+        return False
 
 if __name__ == "__main__":
-    main()
+    sys.exit(0 if build_android() else 1)
