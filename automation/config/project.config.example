@@ -1,0 +1,8 @@
+
+# NOTE: project.config.example is an example config file. 
+# You need to copy this file and rename it to project.config
+
+[Paths]
+dev_repo_root = D:\UE\MyProjectDev
+cgi_repo_root = D:\UE\MyProjectCGI
+ue_root = C:\Program Files\Epic Games\UE_5.5

@@ -11,27 +11,38 @@ import configparser
 # ->Only prints operations
 
 # === LOAD CONFIGURATION ===
-SCRIPT_DIR = Path(__file__).resolve().parent
-CONFIG_FILE = SCRIPT_DIR / "build_and_push_to_cgi.config"
+SCRIPT_DIR = Path(__file__).resolve().parent / "config"
+BUILD_CONFIG_FILE = SCRIPT_DIR / "build_and_push_to_cgi.config"
+PROJECT_CONFIG_FILE = SCRIPT_DIR / "project.config"
 
 # === ENSURE CONFIGURATION FILE EXISTS ===
-if not CONFIG_FILE.exists():
-    print(f"Configuration file not found: {CONFIG_FILE}")
-    print("Please create a configuration.ini file in the same folder as this script.")
+if not BUILD_CONFIG_FILE.exists():
+    print(f"Configuration file not found: {BUILD_CONFIG_FILE}")
+    print("Please create build_and_push_to_cgi.config in /config")
     input("Press Enter to exit...")
     exit(1)
 
+# === ENSURE PROJECT CONFIGURATION FILE EXISTS ===
+if not PROJECT_CONFIG_FILE.exists():
+    print(f"Project configuration file not found: {PROJECT_CONFIG_FILE}")
+    print("Please create project.config in /config")
+    input("Press Enter to exit...")
+    exit(1)
 
-config = configparser.ConfigParser()
-config.optionxform = str  # keep case-sensitive
-config.read(CONFIG_FILE)
+build_config = configparser.ConfigParser()
+build_config.optionxform = str  # keep case-sensitive
+build_config.read(BUILD_CONFIG_FILE)
 
-DEV_REPO_ROOT = (SCRIPT_DIR / config['Paths']['dev_repo_root']).resolve()
-CGI_REPO_ROOT = (SCRIPT_DIR / config['Paths']['cgi_repo_root']).resolve()
-UE_ROOT = (SCRIPT_DIR / config['Paths']['ue_root']).resolve()
+project_config = configparser.ConfigParser()
+project_config.optionxform = str
+project_config.read(PROJECT_CONFIG_FILE)
 
-BUILD_COMMANDS = [value.strip() for key, value in config['Build'].items() if value and value.strip()]
-files_to_copy_raw = config.get('FilesToCopy', 'paths', fallback='')
+DEV_REPO_ROOT = (SCRIPT_DIR / project_config['Paths']['dev_repo_root']).resolve()
+CGI_REPO_ROOT = (SCRIPT_DIR / project_config['Paths']['cgi_repo_root']).resolve()
+UE_ROOT = (SCRIPT_DIR / project_config['Paths']['ue_root']).resolve()
+
+BUILD_COMMANDS = [value.strip() for key, value in build_config['Build'].items() if value and value.strip()]
+files_to_copy_raw = build_config.get('FilesToCopy', 'paths', fallback='')
 FILES_TO_COPY = [line.strip() for line in files_to_copy_raw.splitlines() if line.strip()]
 
 ##
@@ -85,7 +96,7 @@ def check_cgi_repo_clean():
         raise RuntimeError("CGI repo has uncommitted changes. Please commit or stash them first.")
 
 ##
-#  Builds dev binaries from the dev , by running all commands defined in the config sequentially
+#  Builds dev binaries from the dev , by running all commands defined in the build config sequentially
 ##
 def build_dev_binaries(dry_run=False):
     if not BUILD_COMMANDS:
@@ -100,7 +111,7 @@ def build_dev_binaries(dry_run=False):
 
 ##
 #  Deletes (from CGI) all files that will be copied from dev to cgi
-#  Files to be deleted are defined in the config file
+#  Files to be deleted are defined in the build config file
 ##
 def delete_old_files(dry_run=False):
     for rel_path in FILES_TO_COPY:
@@ -117,7 +128,7 @@ def delete_old_files(dry_run=False):
 
 ##
 #  Copies the files
-#  Files to be copied are defined in the config file
+#  Files to be copied are defined in the build config file
 ##
 def copy_new_files(dry_run=False):
     for rel_path in FILES_TO_COPY:

@@ -1,2 +1,2 @@
-# Ignore the local user's config file
-/automation/build_and_push_to_cgi.config
+# Ignore the local user's config files
+/automation/config/*.config
