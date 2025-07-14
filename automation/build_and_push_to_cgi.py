@@ -6,6 +6,8 @@ import sys
 from pathlib import Path
 import configparser
 
+from build_android_binaries import build_android
+
 # === SCRIPT ARGUMENTS ===
 # --dry-run
 # ->Only prints operations
@@ -40,6 +42,7 @@ project_config.read(PROJECT_CONFIG_FILE)
 DEV_REPO_ROOT = (SCRIPT_DIR / project_config['Paths']['dev_repo_root']).resolve()
 CGI_REPO_ROOT = (SCRIPT_DIR / project_config['Paths']['cgi_repo_root']).resolve()
 UE_ROOT = (SCRIPT_DIR / project_config['Paths']['ue_root']).resolve()
+INCLUDE_ANDROID = build_config.getboolean("Build", "IncludeAndroid", fallback=False)
 
 BUILD_COMMANDS = [value.strip() for key, value in build_config['Build'].items() if value and value.strip()]
 files_to_copy_raw = build_config.get('FilesToCopy', 'paths', fallback='')
@@ -165,6 +168,11 @@ def main():
     try:
         check_cgi_repo_clean()
         build_dev_binaries(dry_run=dry_run)
+        
+        if not dry_run and INCLUDE_ANDROID:
+            if not build_android():
+                raise RuntimeError("Failed to build android binaries")
+        
         delete_old_files(dry_run=dry_run)
         copy_new_files(dry_run=dry_run)
         

@@ -10,6 +10,8 @@ build_command_2 = UnrealBuildTool.dll MyProjectEditor Win64 Shipping -project=My
 build_command_3 = UnrealBuildTool.dll MyProjectEditor Win64 Development -project=MyProject.uproject -clean
 # Full Development rebuild (this also cleans its previous binaries)
 build_command_4 = UnrealBuildTool.dll MyProjectEditor Win64 Development -project=MyProject.uproject -Rebuild
+# If true, we also build for native android. This will generate AndroidPrecompiled/<project>-arm64.so (or other configuration equivalent)
+IncludeAndroid = false
 
 # List of files/folders to copy.
 # IMPORTANT: Each path must be indented (at least one space or tab)!
