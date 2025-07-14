@@ -1,12 +1,10 @@
 import subprocess
 import shutil
 import sys
-import os
 from pathlib import Path
 import configparser
 
 def get_project_root() -> Path:
-    # Assumes script is in <project_root>/UEScripts/automation/
     return Path(__file__).resolve().parents[2]
 
 def find_uproject(project_root: Path) -> Path:
@@ -18,7 +16,7 @@ def find_uproject(project_root: Path) -> Path:
     return uproject_files[0]
 
 def load_ue_root() -> Path:
-    config_path = Path(__file__).resolve().parents[0] / "config" / "project.config"
+    config_path = Path(__file__).resolve().parent / "config" / "project.config"
     if not config_path.exists():
         print(f"project.config not found at: {config_path}")
         input("Press Enter to exit...")
@@ -41,7 +39,24 @@ def load_ue_root() -> Path:
 
     return ue_root
 
-def run_build(ue_root: Path, uproject_path: Path):
+def load_build_settings() -> str:
+    config_path = Path(__file__).resolve().parent / "config" / "build_android_binaries.config"
+    if not config_path.exists():
+        print(f"build_android_binaries.config not found at: {config_path}")
+        input("Press Enter to exit...")
+        sys.exit(1)
+
+    config = configparser.ConfigParser()
+    config.read(config_path)
+
+    try:
+        return config["Build"]["configuration"]
+    except KeyError:
+        print("Missing 'configuration' in [Build] section of build_android_binaries.config")
+        input("Press Enter to exit...")
+        sys.exit(1)
+
+def run_build(ue_root: Path, uproject_path: Path, configuration: str):
     runuat_path = ue_root / "Engine" / "Build" / "BatchFiles" / "RunUAT.bat"
     if not runuat_path.exists():
         print(f"RunUAT.bat not found at {runuat_path}")
@@ -53,16 +68,16 @@ def run_build(ue_root: Path, uproject_path: Path):
         "BuildCookRun",
         f"-project={uproject_path}",
         "-noP4",
-        "-clientconfig=Shipping",
-        "-serverconfig=Shipping",
+        f"-clientconfig={configuration}",
+        f"-serverconfig={configuration}",
         "-platform=Android",
         "-targetplatform=Android",
         "-build",
         "-cook",
         "-pak",
         "-stage",
-        "-archive",
-        "-archivedirectory=Saved/AndroidBuild"
+        "-archive"
+        # Removed: "-archivedirectory=Saved/AndroidBuild"
     ]
 
     print(f"Running Unreal Automation Tool:")
@@ -73,18 +88,22 @@ def run_build(ue_root: Path, uproject_path: Path):
         input("Press Enter to exit...")
         sys.exit(result.returncode)
 
-def copy_binaries(project_root: Path):
-    lib_name = f"lib{uproject_path.stem}.so"
-    source_so = project_root / "Saved" / "AndroidBuild" / "Android_ASTC" / "Engine" / "Binaries" / "Android" / lib_name
-    target_dir = project_root / "Binaries" / "AndroidPrecompiled"
-    target_dir.mkdir(parents=True, exist_ok=True)
+def report_outputs(project_root: Path, uproject_path: Path):
+    stem = uproject_path.stem
+    output_dir = project_root / "Binaries" / "Android"
+    apk_file = output_dir / f"{stem}-arm64.apk"
+    so_file = output_dir / f"{stem}-arm64.so"
 
-    if source_so.exists():
-        shutil.copy2(source_so, target_dir / "libUE4.so")
-        print(f"Copied libUE4.so to {target_dir}")
+    print("\nBuild Output Summary:")
+    if apk_file.exists():
+        print(f"APK: {apk_file}")
     else:
-        input("Press Enter to exit...")
-        print("libUE4.so not found. Build may have failed or was generated for a different texture format.")
+        print(f"APK not found: {apk_file}")
+
+    if so_file.exists():
+        print(f"SO : {so_file}")
+    else:
+        print(f"SO not found: {so_file}")
 
 def main():
     project_root = get_project_root()
@@ -96,8 +115,11 @@ def main():
     ue_root = load_ue_root()
     print(f"Using Unreal Engine from: {ue_root}")
 
-    run_build(ue_root, uproject_path)
-    copy_binaries(project_root)
+    configuration = load_build_settings()
+    print(f"Build configuration: {configuration}")
+
+    run_build(ue_root, uproject_path, configuration)
+    report_outputs(project_root, uproject_path)
 
 if __name__ == "__main__":
     main()

@@ -2,4 +2,4 @@
 # You need to copy this file and rename it to build_android_binaries.config
 
 [Build]
-configuration = Shipping
+configuration = Development
