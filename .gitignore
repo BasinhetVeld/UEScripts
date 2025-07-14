@@ -1,4 +1,5 @@
 # Ignore the local user's config files
 /automation/config/*.config
 
+# Ignore all python caches
 __pycache__/
