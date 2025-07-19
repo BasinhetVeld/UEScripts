@@ -36,19 +36,6 @@ def run_build(ue_root: Path, uproject_path: Path, configuration: str):
     if result.returncode != 0:
         raise RuntimeError("BuildCookRun failed with exit code", result.returncode)
 
-def move_so_to_precompiled(project_root: Path, uproject_path: Path):
-    stem = uproject_path.stem
-    source_so = project_root / "Binaries" / "Android" / f"{stem}-arm64.so"
-    target_dir = project_root / "AndroidPrecompiled"
-    target_dir.mkdir(parents=True, exist_ok=True)
-    target_so = target_dir / f"{stem}-arm64.so"
-
-    if source_so.exists():
-        shutil.copy2(source_so, target_so)
-        print(f"Copied {source_so.name} to {target_so}")
-    else:
-        raise RuntimeError(f"Could not find {source_so.name} in Binaries/Android.")
-
 def build_android(configuration: str) -> bool:
     try:
         project_root = get_project_root()
@@ -63,7 +50,6 @@ def build_android(configuration: str) -> bool:
         print(f"Build configuration: {configuration}")
 
         run_build(ue_root, uproject_path, configuration)
-        move_so_to_precompiled(project_root, uproject_path)
         return True
         
     except Exception as e:

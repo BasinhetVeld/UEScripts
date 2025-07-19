@@ -68,6 +68,7 @@ def package_and_install(configuration: str) -> bool:
         install_apk_to_quest(apk_path)
 
         print("Package and install completed.")
+        input("Press Enter to exit...")
         return True
 
     except Exception as e:
