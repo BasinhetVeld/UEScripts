@@ -15,9 +15,6 @@ class GlobalData:
     runuat_path: str
     project_name: str
 
-def normalize_path(p: str) -> str:
-    return Path(p).as_posix()
-
 def build_command(
     global_data: GlobalData,
     build_config: str,
@@ -26,9 +23,7 @@ def build_command(
     platform: str
 ) -> str:
     unreal_cmd = os.path.join(global_data.engine_root, "Engine", "Binaries", "Win64", "UnrealEditor-Cmd.exe")
-    uproject_file = normalize_path(os.path.join(global_data.project_root, global_data.project_name + ".uproject"))
-
-    output_dir = normalize_path(output_dir)
+    uproject_file = os.path.join(global_data.project_root, global_data.project_name + ".uproject")
 
     args = [
         f"-ScriptsForProject=\"{uproject_file}\"",
@@ -69,18 +64,29 @@ def build_command(
 
 def move_packaging_includes(global_data: GlobalData, output_dir: str):
     source_dir = Path(os.path.join(global_data.project_root, "Script", "PackagingIncludes"))
+    output_dir = Path(output_dir)
+    
     if not os.path.exists(source_dir):
-        print(f"[Packaging] No PackagingIncludes found at {source_dir}")
+        print(f"[Packaging] No PackagingIncludes found at {source_dir}, skipping.")
         return
 
     for item in source_dir.iterdir():
-        dest_item = Path(output_dir) / item.name
-        if item.is_dir():
-            if dest_item.exists():
-                shutil.rmtree(dest_item)
-            shutil.copytree(item, dest_item)
-        else:
-            shutil.copy2(item, dest_item)
+        dest_item = output_dir / item.name
+        try:
+            if item.is_dir():
+                for sub_item in item.rglob("*"):
+                    rel_path = sub_item.relative_to(item)
+                    target_path = dest_item / rel_path
+                    if sub_item.is_dir():
+                        target_path.mkdir(parents=True, exist_ok=True)
+                    else:
+                        target_path.parent.mkdir(parents=True, exist_ok=True)
+                        shutil.copy2(sub_item, target_path)
+            else:
+                dest_item.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(item, dest_item)
+        except Exception as e:
+            print(f"Failed to copy {item} to {dest_item}: {e}")
 
 
 def run_packaging(cmd_args: str, global_data: GlobalData, output_dir: str) -> bool :
