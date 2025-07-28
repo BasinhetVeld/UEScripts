@@ -15,6 +15,9 @@ class GlobalData:
     runuat_path: str
     project_name: str
 
+def normalize_path(p: str) -> str:
+    return Path(p).as_posix()
+
 def build_command(
     global_data: GlobalData,
     build_config: str,
@@ -23,7 +26,9 @@ def build_command(
     platform: str
 ) -> str:
     unreal_cmd = os.path.join(global_data.engine_root, "Engine", "Binaries", "Win64", "UnrealEditor-Cmd.exe")
-    uproject_file = os.path.join(global_data.project_root, global_data.project_name + ".uproject")
+    uproject_file = normalize_path(os.path.join(global_data.project_root, global_data.project_name + ".uproject"))
+
+    output_dir = normalize_path(output_dir)
 
     args = [
         f"-ScriptsForProject=\"{uproject_file}\"",
@@ -54,9 +59,7 @@ def build_command(
         "-compressed",
         "-prereqs",
         f"-archivedirectory=\"{output_dir}\"",
-        f"-clientconfig={build_config}",
-        "-nocompile",
-        "-nocompileuat"
+        f"-clientconfig={build_config}"
     ]
 
     if full_rebuild:
@@ -84,7 +87,12 @@ def run_packaging(cmd_args: str, global_data: GlobalData, output_dir: str) -> bo
     try:
         bring_console_to_front()
 
-        subprocess.run(global_data.runuat_path + " " + cmd_args, check=True)
+        full_command = '"' + global_data.runuat_path + '" ' + cmd_args + ' -nocompile -nocompileuat'
+
+        print("command\n")
+        print(full_command)
+
+        subprocess.run(full_command, shell=True, check=True)
 
         move_packaging_includes(global_data, output_dir)
 
