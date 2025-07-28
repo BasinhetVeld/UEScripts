@@ -1,5 +1,6 @@
 from pathlib import Path
 import configparser
+import ctypes
 
 def get_project_root() -> Path:
     return Path(__file__).resolve().parents[3]
@@ -27,3 +28,12 @@ def load_ue_root() -> Path:
         raise RuntimeError(f"ue_root path does not exist: {ue_root}")
 
     return ue_root
+
+def bring_console_to_front():
+    kernel32 = ctypes.WinDLL('kernel32')
+    user32 = ctypes.WinDLL('user32')
+
+    hWnd = kernel32.GetConsoleWindow()
+    if hWnd:
+        user32.ShowWindow(hWnd, 9)  # SW_RESTORE
+        user32.SetForegroundWindow(hWnd)
