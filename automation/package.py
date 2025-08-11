@@ -37,8 +37,6 @@ def build_command(
         "BuildCookRun",
         "-nop4",
         "-utf8output",
-        "-nocompileeditor",
-        "-skipbuildeditor",
         "-cook",
         f"-project=\"{uproject_file}\"",
         f"-target={os.path.splitext(global_data.project_name)[0]}",
