@@ -1,5 +1,5 @@
 # NOTE: build_and_push_to_cgi.config.example is an example config file. 
-# You need to copy this file and rename it to build_and_push_to_cgi.config
+# You need to copy this file and rename it to build_and_push_to_cgi.config, and move it to <ProjectDir>/Config/automation
 
 [BuildCommands]
 # Clean DebugGame binaries

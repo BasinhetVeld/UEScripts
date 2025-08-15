@@ -1,0 +1,2 @@
+
+This folder contains examples for build scripts. Please check each .example file to see where the specific script is expected to be placed - for example, project.config should be in this folder, but other configs like build_and_push_to_cgi.config should be stored in <ProjectDir>/Config/automation

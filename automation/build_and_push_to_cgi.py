@@ -12,17 +12,9 @@ from build_android_binaries import build_android
 # --dry-run
 # ->Only prints operations
 
-# === LOAD CONFIGURATION ===
+# === LOAD PROJECT CONFIGURATION ===
 SCRIPT_DIR = Path(__file__).resolve().parent / "config"
-BUILD_CONFIG_FILE = SCRIPT_DIR / "build_and_push_to_cgi.config"
 PROJECT_CONFIG_FILE = SCRIPT_DIR / "project.config"
-
-# === ENSURE CONFIGURATION FILE EXISTS ===
-if not BUILD_CONFIG_FILE.exists():
-    print(f"Configuration file not found: {BUILD_CONFIG_FILE}")
-    print("Please create build_and_push_to_cgi.config in /config")
-    input("Press Enter to exit...")
-    exit(1)
 
 # === ENSURE PROJECT CONFIGURATION FILE EXISTS ===
 if not PROJECT_CONFIG_FILE.exists():
@@ -31,15 +23,26 @@ if not PROJECT_CONFIG_FILE.exists():
     input("Press Enter to exit...")
     exit(1)
 
-build_config = configparser.ConfigParser()
-build_config.optionxform = str  # keep case-sensitive
-build_config.read(BUILD_CONFIG_FILE)
-
 project_config = configparser.ConfigParser()
 project_config.optionxform = str
 project_config.read(PROJECT_CONFIG_FILE)
 
 DEV_REPO_ROOT = (SCRIPT_DIR / project_config['Paths']['dev_repo_root']).resolve()
+
+# === LOAD BUILD CONFIGURATION ===
+BUILD_CONFIG_FILE = DEV_REPO_ROOT / "Config/automation/build_and_push_to_cgi.config"
+
+# === ENSURE CONFIGURATION FILE EXISTS ===
+if not BUILD_CONFIG_FILE.exists():
+    print(f"Configuration file not found: {BUILD_CONFIG_FILE}")
+    print("Please create build_and_push_to_cgi.config in /config")
+    input("Press Enter to exit...")
+    exit(1)
+
+build_config = configparser.ConfigParser()
+build_config.optionxform = str  # keep case-sensitive
+build_config.read(BUILD_CONFIG_FILE)
+
 CGI_REPO_ROOT = (SCRIPT_DIR / project_config['Paths']['cgi_repo_root']).resolve()
 UE_ROOT = (SCRIPT_DIR / project_config['Paths']['ue_root']).resolve()
 INCLUDE_ANDROID = build_config.getboolean("Build", "IncludeAndroid", fallback=False)
