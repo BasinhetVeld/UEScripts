@@ -50,6 +50,8 @@ def build_android(configuration: str) -> bool:
         print(f"Build configuration: {configuration}")
 
         run_build(ue_root, uproject_path, configuration)
+        
+        input("Build succeeded. Press Enter to exit...")
         return True
         
     except Exception as e:
