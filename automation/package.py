@@ -99,12 +99,16 @@ def run_packaging(cmd_args: str, global_data: GlobalData, output_dir: str) -> bo
         subprocess.run(full_command, shell=True, check=True)
 
         move_packaging_includes(global_data, output_dir)
-
-        print("Packaging successful.")
+        
         return True
     except subprocess.CalledProcessError as e:
         print(f"Packaging failed.\n\n{e}")
     return False
+    
+def preinstall_pixelstreaming(global_data: GlobalData, output_dir: str, ):
+    print("Pre-installing pixel streaming web-servers")
+    batch_file_path = os.path.join(output_dir, "windows", global_data.project_name, "samples", "PixelStreaming", "WebServers", "get_ps_servers.bat")
+    subprocess.run(batch_file_path, shell=True, check=True)
 
 def create_ui():
     engine_root = str(load_ue_root())
@@ -143,16 +147,25 @@ def create_ui():
     tk.OptionMenu(root, build_config_var, "Debug", "Development", "Shipping", command=lambda _: update_command_preview())\
         .grid(row=0, column=1, **padding_options)
 
+    CurrentRow:int = 1
+
     # Full Rebuild
     b_full_rebuild = tk.BooleanVar()
     tk.Checkbutton(root, text="Full Rebuild & Recook", variable=b_full_rebuild, command=update_command_preview)\
-        .grid(row=1, column=1, **padding_options)
+        .grid(row=CurrentRow, column=1, **padding_options)
+    CurrentRow += 1
+    
+    # Whether to pre-install pixel streaming (if applicable)
+    b_preinstall_pixelstreaming = tk.BooleanVar(value=True)
+    tk.Checkbutton(root, text="Preinstall Pixelstreaming (if applicable)", variable = b_preinstall_pixelstreaming)\
+        .grid(row=CurrentRow, column=1, **padding_options)
+    CurrentRow += 1
 
     # Output Directory
     tk.Label(root, text="Output Directory:").grid(row=2, column=0, **padding_options)
     default_output_dir = os.path.join(global_data.project_root, "Packaged")
     output_dir_var = tk.StringVar(value=default_output_dir)
-    tk.Entry(root, textvariable=output_dir_var, width=60).grid(row=2, column=1, **padding_options)
+    tk.Entry(root, textvariable=output_dir_var, width=60).grid(row=CurrentRow, column=1, **padding_options)
 
     def browse_and_update():
         selected = filedialog.askdirectory()
@@ -160,23 +173,33 @@ def create_ui():
             output_dir_var.set(selected)
             update_command_preview()
 
-    tk.Button(root, text="Browse", command=browse_and_update).grid(row=2, column=2, **padding_options)
+    tk.Button(root, text="Browse", command=browse_and_update).grid(row=CurrentRow, column=2, **padding_options)
     output_dir_var.trace_add("write", lambda *_: update_command_preview())
+    CurrentRow += 1
 
     # Platform
     tk.Label(root, text="Target Platform:").grid(row=3, column=0, **padding_options)
     platform_var = tk.StringVar(value="Win64")
     tk.OptionMenu(root, platform_var, "Win64", "Android", "iOS", command=lambda _: update_command_preview())\
-        .grid(row=3, column=1, **padding_options)
+        .grid(row=CurrentRow, column=1, **padding_options)
+    CurrentRow += 1
 
     # Command Preview
     tk.Label(root, text="Command Preview:").grid(row=4, column=0, **padding_options)
     command_display = tk.Text(root, width=100, height=10, wrap="word")
-    command_display.grid(row=4, column=1, columnspan=2, **padding_options)
+    command_display.grid(row=CurrentRow, column=1, columnspan=2, **padding_options)
+    CurrentRow += 1
+
+    def execute_packaging():
+        run_packaging(cached_command_string.get(), global_data, output_dir_var.get())
+        if b_preinstall_pixelstreaming.get():
+            preinstall_pixelstreaming(global_data, output_dir_var.get())
+        print("Packaging completed!")
 
     # Run Button
-    tk.Button(root, text="Package", command=lambda: run_packaging(cached_command_string.get(), global_data, output_dir_var.get()))\
-        .grid(row=5, column=1, **padding_options)
+    tk.Button(root, text="Package", command=execute_packaging)\
+        .grid(row=CurrentRow, column=1, **padding_options)
+    CurrentRow += 1
 
     update_command_preview()
     root.mainloop()
