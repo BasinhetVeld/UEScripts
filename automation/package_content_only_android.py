@@ -2,6 +2,7 @@ import subprocess
 import shutil
 import sys
 import argparse
+import os
 from pathlib import Path
 import configparser
 
@@ -10,6 +11,34 @@ from common.automation_common import (
     find_uproject,
     load_ue_root
 )
+
+from utils.modify_android_target import(
+    modify_android_target
+)
+
+def make_android_target_backup(target_path: str, backup_path: str):
+    if os.path.exists(backup_path):
+        print("Backup still exists. Not creating backup")
+        return
+    
+    try:
+        with open(target_path, "rb") as rf, open(backup_path, "wb") as wf:
+            wf.write(rf.read())
+        print(f"[INFO] Backup created: {backup_path}")
+    except Exception as e:
+        raise RuntimeError("Failed creating backup.")
+
+def restore_backup(backup_path: str, target_path: str):
+    if not os.path.isfile(backup_path):
+        raise RuntimeError("Failed to restore backup!")
+    
+    if os.path.exists(target_path):
+        os.remove(target_path)
+
+    print("restoring backup:")
+    print(f"{backup_path} -> {target_path}")
+    os.rename(backup_path, target_path)
+    
 
 def run_content_only_build(ue_root: Path, uproject_path: Path, configuration: str):
     runuat_path = ue_root / "Engine" / "Build" / "BatchFiles" / "RunUAT.bat"
@@ -53,28 +82,38 @@ def install_apk_to_quest(apk_path: Path):
         raise RuntimeError(f"ADB install failed with exit code {result.returncode}")
 
 def package_and_install(configuration: str) -> bool:
+    
+    project_root = get_project_root()
+    uproject_path = find_uproject(project_root)
+    ue_root = load_ue_root()
+    project_name = os.path.splitext(uproject_path.name)[0]
+
+    print(f"Project root: {project_root}")
+    print(f"UProject: {uproject_path.name}")
+    print(f"UE Root: {ue_root}")
+    print(f"Build Configuration: {configuration}")
+    
+    android_target_path:str = os.path.join(project_root, "Binaries", "Android", f"{project_name}.target")
+    # Backup
+    backup_path = f"{android_target_path}.bak"
+    
     try:
-        project_root = get_project_root()
-        uproject_path = find_uproject(project_root)
-        ue_root = load_ue_root()
 
-        print(f"Project root: {project_root}")
-        print(f"UProject: {uproject_path.name}")
-        print(f"UE Root: {ue_root}")
-        print(f"Build Configuration: {configuration}")
-
+        make_android_target_backup(android_target_path, backup_path)
+        # modify the Android <Project>.target. This edits absolute paths to represent the current project path - project plugins often use hardcoded system-specific paths
+        modify_android_target(android_target_path)
+        
         run_content_only_build(ue_root, uproject_path, configuration)
         apk_path = find_apk(project_root, uproject_path)
         install_apk_to_quest(apk_path)
 
         print("Package and install completed.")
-        input("Press Enter to exit...")
-        return True
-
     except Exception as e:
         print(f"Package and install failed: {e}")
-        input("Press Enter to exit...")
-        return False
+        
+    # Restore backup, even if we failed
+    restore_backup(backup_path, android_target_path)
+    input("Press Enter to exit...")
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Package and install updated content to Quest")
