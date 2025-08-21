@@ -107,8 +107,51 @@ def run_packaging(cmd_args: str, global_data: GlobalData, output_dir: str) -> bo
     
 def preinstall_pixelstreaming(global_data: GlobalData, output_dir: str, ):
     print("Pre-installing pixel streaming web-servers")
-    batch_file_path = os.path.join(output_dir, "windows", global_data.project_name, "samples", "PixelStreaming", "WebServers", "get_ps_servers.bat")
-    subprocess.run(batch_file_path, shell=True, check=True)
+    project_root = os.path.join(output_dir, "windows", global_data.project_name)
+    webservers_dir = os.path.join(project_root, "samples", "PixelStreaming", "WebServers")
+    get_ps_servers = os.path.join(webservers_dir, "get_ps_servers.bat")
+    ps_script = os.path.join(os.path.dirname(__file__), "utils", "MaterializeSymbolicLinks.ps1")
+  
+    print("Fetching Pixel Streaming web-servers...")
+    try:
+        # .bat needs shell=True on Windows
+        subprocess.run(get_ps_servers, shell=True, check=True)
+    except subprocess.CalledProcessError as e:
+        raise RuntimeError(f"get_ps_servers.bat failed with exit code {e.returncode}") from e
+    
+    print("Installing workspace dependencies (npm ci --workspaces)...")
+    try:
+        subprocess.run(["npm.cmd", "ci", "--workspaces"], cwd=webservers_dir, check=True)
+        subprocess.run(["npm.cmd", "run", "build", "--workspaces"], cwd=webservers_dir, check=True)
+    except FileNotFoundError as e:
+        raise RuntimeError("npm.cmd not found on PATH") from e
+    except subprocess.CalledProcessError as e:
+        raise RuntimeError(f"npm ci failed with exit code {e.returncode}") from e
+    
+    print("Materializing symlinks/junctions for portability...")
+    # Prefer Windows PowerShell; if missing, try PowerShell 7 (pwsh)
+    try:
+        subprocess.run(
+            ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass",
+             "-File", ps_script, "-StartPath", webservers_dir],
+            check=True
+        )
+    except FileNotFoundError:
+        # Retry with pwsh
+        try:
+            subprocess.run(
+                ["pwsh", "-NoProfile", "-ExecutionPolicy", "Bypass",
+                 "-File", ps_script, "-StartPath", webservers_dir],
+                check=True
+            )
+        except FileNotFoundError as e2:
+            raise RuntimeError("Neither 'powershell' nor 'pwsh' found on PATH") from e2
+        except subprocess.CalledProcessError as e2:
+            raise RuntimeError(f"MaterializeSymbolicLinks.ps1 failed (pwsh) with exit code {e2.returncode}") from e2
+    except subprocess.CalledProcessError as e:
+        raise RuntimeError(f"MaterializeSymbolicLinks.ps1 failed with exit code {e.returncode}") from e
+        
+        
 
 def create_ui():
     engine_root = str(load_ue_root())
