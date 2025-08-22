@@ -107,10 +107,13 @@ def run_packaging(cmd_args: str, global_data: GlobalData, output_dir: str) -> bo
     
 def preinstall_pixelstreaming(global_data: GlobalData, output_dir: str, ):
     print("Pre-installing pixel streaming web-servers")
-    project_root = os.path.join(output_dir, "windows", global_data.project_name)
-    webservers_dir = os.path.join(project_root, "samples", "PixelStreaming", "WebServers")
+    project_root = os.path.join(output_dir, "Windows", global_data.project_name)
+    webservers_dir = os.path.join(project_root, "Samples", "PixelStreaming", "WebServers")
     get_ps_servers = os.path.join(webservers_dir, "get_ps_servers.bat")
-    ps_script = os.path.join(os.path.dirname(__file__), "utils", "MaterializeSymbolicLinks.ps1")
+    ps_setup_script = os.path.join(os.path.dirname(__file__), "utils", "prebuild_ue_ps_servers.bat")
+    ps_ue_scripts_location = os.path.join(output_dir, "Windows", global_data.project_name, "Samples", "PixelStreaming", "WebServers", "SignallingWebServer", "platform_scripts", "cmd")
+    symbolic_links_script = os.path.join(os.path.dirname(__file__), "utils", "MaterializeSymbolicLinks.ps1")
+    
   
     print("Fetching Pixel Streaming web-servers...")
     try:
@@ -119,21 +122,27 @@ def preinstall_pixelstreaming(global_data: GlobalData, output_dir: str, ):
     except subprocess.CalledProcessError as e:
         raise RuntimeError(f"get_ps_servers.bat failed with exit code {e.returncode}") from e
     
-    print("Installing workspace dependencies (npm ci --workspaces)...")
+    
     try:
+        print("Installing workspace dependencies (npm ci --workspaces)...")
         subprocess.run(["npm.cmd", "ci", "--workspaces"], cwd=webservers_dir, check=True)
-        subprocess.run(["npm.cmd", "run", "build", "--workspaces"], cwd=webservers_dir, check=True)
+        
+        print("Pre-installing web servers")
+        subprocess.run([ps_setup_script, ps_ue_scripts_location], check=True)
+        
     except FileNotFoundError as e:
         raise RuntimeError("npm.cmd not found on PATH") from e
     except subprocess.CalledProcessError as e:
         raise RuntimeError(f"npm ci failed with exit code {e.returncode}") from e
+        
+    
     
     print("Materializing symlinks/junctions for portability...")
     # Prefer Windows PowerShell; if missing, try PowerShell 7 (pwsh)
     try:
         subprocess.run(
             ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass",
-             "-File", ps_script, "-StartPath", webservers_dir],
+             "-File", symbolic_links_script, "-StartPath", webservers_dir],
             check=True
         )
     except FileNotFoundError:
@@ -141,7 +150,7 @@ def preinstall_pixelstreaming(global_data: GlobalData, output_dir: str, ):
         try:
             subprocess.run(
                 ["pwsh", "-NoProfile", "-ExecutionPolicy", "Bypass",
-                 "-File", ps_script, "-StartPath", webservers_dir],
+                 "-File", symbolic_links_script, "-StartPath", webservers_dir],
                 check=True
             )
         except FileNotFoundError as e2:
@@ -205,7 +214,7 @@ def create_ui():
     CurrentRow += 1
 
     # Output Directory
-    tk.Label(root, text="Output Directory:").grid(row=2, column=0, **padding_options)
+    tk.Label(root, text="Output Directory:").grid(row=3, column=0, **padding_options)
     default_output_dir = os.path.join(global_data.project_root, "Packaged")
     output_dir_var = tk.StringVar(value=default_output_dir)
     tk.Entry(root, textvariable=output_dir_var, width=60).grid(row=CurrentRow, column=1, **padding_options)
@@ -221,14 +230,14 @@ def create_ui():
     CurrentRow += 1
 
     # Platform
-    tk.Label(root, text="Target Platform:").grid(row=3, column=0, **padding_options)
+    tk.Label(root, text="Target Platform:").grid(row=4, column=0, **padding_options)
     platform_var = tk.StringVar(value="Win64")
     tk.OptionMenu(root, platform_var, "Win64", "Android", "iOS", command=lambda _: update_command_preview())\
         .grid(row=CurrentRow, column=1, **padding_options)
     CurrentRow += 1
 
     # Command Preview
-    tk.Label(root, text="Command Preview:").grid(row=4, column=0, **padding_options)
+    tk.Label(root, text="Command Preview:").grid(row=5, column=0, **padding_options)
     command_display = tk.Text(root, width=100, height=10, wrap="word")
     command_display.grid(row=CurrentRow, column=1, columnspan=2, **padding_options)
     CurrentRow += 1
