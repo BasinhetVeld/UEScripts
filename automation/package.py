@@ -114,6 +114,9 @@ def preinstall_pixelstreaming(global_data: GlobalData, output_dir: str, ):
     ps_ue_scripts_location = os.path.join(output_dir, "Windows", global_data.project_name, "Samples", "PixelStreaming", "WebServers", "SignallingWebServer", "platform_scripts", "cmd")
     symbolic_links_script = os.path.join(os.path.dirname(__file__), "utils", "MaterializeSymbolicLinks.ps1")
     
+    if not os.path.exists(get_ps_servers):
+        print("No pixel streaming content detected, skipping.")
+        return
   
     print("Fetching Pixel Streaming web-servers...")
     try:
