@@ -3,3 +3,4 @@
 
 # Ignore all python caches
 __pycache__/
+/ue-quest.log
