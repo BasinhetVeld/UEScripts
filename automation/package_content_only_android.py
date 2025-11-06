@@ -57,6 +57,7 @@ def run_content_only_build(ue_root: Path, uproject_path: Path, configuration: st
         f"-serverconfig={configuration}",
         "-platform=Android",
         "-targetplatform=Android",
+        "-AdditionalCookerOptions=\"-targetdevice=NativeHMD\"", # Custom command that we use to detect whether we're building for HMD/Quest
         "-cook",
         "-pak",
         "-stage",
