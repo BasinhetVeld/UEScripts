@@ -1,3 +1,9 @@
+
+# This script packages for Android, specifically for Quest3.
+# Arguments allowed are Development|Debug|Shipping
+# Binaries for Android must exist at <ProjectDir>/Binaries/Android, they will not be built as part of this script
+
+
 import subprocess
 import shutil
 import sys

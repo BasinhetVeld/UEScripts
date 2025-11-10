@@ -1,3 +1,9 @@
+
+# This script builds the binaries for Android, specifically for Quest3.
+# Arguments allowed are Development|Debug|Shipping
+# Binaries will end up in their default location, <ProjectDir>/Binaries/Android
+# No cook is done.
+
 import subprocess
 import shutil
 import sys
