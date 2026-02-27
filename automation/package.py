@@ -211,7 +211,7 @@ def create_ui():
     CurrentRow += 1
     
     # Whether to pre-install pixel streaming (if applicable)
-    b_preinstall_pixelstreaming = tk.BooleanVar(value=True)
+    b_preinstall_pixelstreaming = tk.BooleanVar(value=False)
     tk.Checkbutton(root, text="Preinstall Pixelstreaming (if applicable)", variable = b_preinstall_pixelstreaming)\
         .grid(row=CurrentRow, column=1, **padding_options)
     CurrentRow += 1
